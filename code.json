@@ -1,4 +1,4 @@
-{"code": 'import sys
+import sys
 import json
 from io import StringIO
 from contextlib import redirect_stdout, redirect_stderr
@@ -52,4 +52,4 @@ def main():
         print(json.dumps({"error": f"An error occurred: {e}"}))
 
 if __name__ == "__main__":
-    main()'}
+    main()
