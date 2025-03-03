@@ -1,0 +1,55 @@
+{"code": 'import sys
+import json
+from io import StringIO
+from contextlib import redirect_stdout, redirect_stderr
+
+# libraries available to the user
+import numpy
+
+def extract_result(exec_globals):
+    if exec_globals.get("result") is None:
+        return None
+    if type(exec_globals.get("result")) == str:
+        return exec_globals.get("result")
+    # since the text can use utf-8 and we never loads this again, 
+    # we need to make sure we don't escape utf-8 characters
+    return json.dumps(exec_globals.get("result"), ensure_ascii=False)
+
+def main():
+    try:
+        input_data = sys.stdin.read()
+        json_data = json.loads(input_data)
+
+        if "code" not in json_data:
+            print(json.dumps({"error": "No code provided."}))
+            return
+
+        exec_globals = {"numpy": numpy}
+        exec_locals = json_data.get("variables", {})
+
+        stderr = StringIO()
+        stdout = StringIO()
+        try:
+            with redirect_stdout(stdout), redirect_stderr(stderr):
+                exec(json_data["code"], exec_locals, exec_globals)
+        except Exception as e:
+            print(json.dumps({"error": str(e)}))
+            return
+        output = extract_result(exec_globals)
+        print(
+            json.dumps(
+                {
+                    "output": output,
+                    "stderr": stderr.getvalue(),
+                    "stdout": stdout.getvalue(),
+                }
+            )
+        )
+
+    except json.JSONDecodeError:
+        print(json.dumps({"error": "Invalid JSON."}))
+    except Exception as e:
+        print(json.dumps({"error": f"An error occurred: {e}"}))
+
+if __name__ == "__main__":
+    main()'}
