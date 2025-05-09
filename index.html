@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Organization Form</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2rem;
+      background-color: #f9f9f9;
+    }
+    form {
+      background: #fff;
+      padding: 1.5rem;
+      border-radius: 8px;
+      max-width: 400px;
+      margin: 0 auto;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    label {
+      display: block;
+      margin-bottom: 0.25rem;
+      font-weight: bold;
+    }
+    input, select {
+      width: 100%;
+      padding: 0.5rem;
+      margin-bottom: 1rem;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+    button {
+      background-color: #007BFF;
+      border: none;
+      color: white;
+      padding: 0.75rem 1.25rem;
+      font-size: 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.2s ease-in-out;
+    }
+    button:disabled {
+      background-color: #a0c8ff;
+      cursor: not-allowed;
+    }
+    button:hover:not(:disabled) {
+      background-color: #0056b3;
+    }
+    .message {
+      margin-top: 1rem;
+      font-weight: 500;
+    }
+    .error {
+      color: #b00020;
+    }
+    .success {
+      color: #2e7d32;
+    }
+  </style>
+</head>
+<body>
+
+  <form id="orgForm" aria-label="Organization submission form">
+    <div>
+      <label for="org_id">Organization ID</label>
+      <input type="text" id="org_id" name="org_id" required aria-required="true" autocomplete="off" />
+    </div>
+    <div>
+      <label for="environment">Environment</label>
+      <select id="environment" name="environment" required aria-required="true">
+        <option value="" disabled selected>Select environment</option>
+        <option value="development">Development</option>
+        <option value="staging">Staging</option>
+        <option value="production">Production</option>
+      </select>
+    </div>
+    <button type="submit" id="submitBtn">Submit</button>
+    <div class="message" id="message" role="alert" aria-live="assertive"></div>
+  </form>
+
+  <script>
+    (function() {
+      const form = document.getElementById('orgForm');
+      const submitBtn = document.getElementById('submitBtn');
+      const messageEl = document.getElementById('message');
+
+      // Replace this with your actual API endpoint URL
+      const API_ENDPOINT = 'https://example.com/api/submitOrg';
+
+      form.addEventListener('submit', async function(event) {
+        event.preventDefault();
+        clearMessage();
+        setLoading(true);
+
+        const orgId = form.org_id.value.trim();
+        const environment = form.environment.value;
+
+        // Basic validation already enforced by required attributes,
+        // but we do an extra check here for robustness
+        if (!orgId) {
+          showMessage('Organization ID is required.', true);
+          setLoading(false);
+          return;
+        }
+
+        if (!environment) {
+          showMessage('Please select an environment.', true);
+          setLoading(false);
+          return;
+        }
+
+        const payload = {
+          org_id: orgId,
+          environment: environment
+        };
+
+        try {
+          const response = await fetch(API_ENDPOINT, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify(payload)
+          });
+
+          if (!response.ok) {
+            let errorText = `Request failed with status ${response.status}`;
+            try {
+              const errorData = await response.json();
+              if (errorData.message) {
+                errorText = errorData.message;
+              }
+            } catch (e) {
+              // ignore JSON parse errors
+            }
+            throw new Error(errorText);
+          }
+
+          const data = await response.json();
+          showMessage('Submission successful.', false);
+
+          // Optionally, reset form after success
+          form.reset();
+
+        } catch (error) {
+          showMessage(`Error: ${error.message}`, true);
+        } finally {
+          setLoading(false);
+        }
+      });
+
+      function showMessage(message, isError) {
+        messageEl.textContent = message;
+        messageEl.className = 'message ' + (isError ? 'error' : 'success');
+      }
+
+      function clearMessage() {
+        messageEl.textContent = '';
+        messageEl.className = 'message';
+      }
+
+      function setLoading(isLoading) {
+        submitBtn.disabled = isLoading;
+        submitBtn.textContent = isLoading ? 'Submitting...' : 'Submit';
+      }
+    })();
+  </script>
+
+</body>
+</html>
